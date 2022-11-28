@@ -1,7 +1,10 @@
 .container{
  height: 100vh;
-  
-  
+ background-color: red;
+  .color{
+    background-color: red !important;
+    color: red;
+  }
   .trigger {
   padding: 0 24px;
   font-size: 18px;
