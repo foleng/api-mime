@@ -3,6 +3,7 @@
  import NoMatch from '@/components/NoMatch';
  import Project from '@/pages/project';
  import Login from '@/pages/login'
+import LoginGitlab from "../pages/login-gitlab";
  
  
  const routes: RouteObject[] = [
@@ -27,6 +28,7 @@
       element: <LoginLayout />,
       children: [
         { index: true, element: <Login /> },
+        { path: '/login/gitlab', element: <LoginGitlab /> },
       ],
     },
   ];
