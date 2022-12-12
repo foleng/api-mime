@@ -1,6 +1,6 @@
 import React from 'react'
 import { Outlet } from "react-router-dom"
-import styles from './index.css'
+import styles from './index.scss'
 
 function LoginLayout() {
   return (

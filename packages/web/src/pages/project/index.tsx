@@ -1,35 +1,24 @@
 import { EllipsisOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { ProTable, TableDropdown } from '@ant-design/pro-components';
-import { Button, Dropdown, Space, Tag } from 'antd';
-import { useRef } from 'react';
-import request from 'umi-request';
+import { ProTable, TableDropdown, ModalForm, ProFormText } from '@ant-design/pro-components';
+import { Button, Dropdown, message, Space, Tag } from 'antd';
+import { useRef,useState } from 'react';
+import * as dayjs from 'dayjs';
+import {createProject, deleteProject, getProjects} from './api'
 
 type GithubIssueItem = {
-  url: string;
-  id: number;
-  number: number;
-  title: string;
-  labels: {
-    name: string;
-    color: string;
-  }[];
-  state: string;
-  comments: number;
-  created_at: string;
-  updated_at: string;
-  closed_at?: string;
+  _id: number;
+  name: string;
+  status: string;
+  resource: string;
+  createdTime: string;
+  updatedTime: string;
 };
 
 const columns: ProColumns<GithubIssueItem>[] = [
   {
-    dataIndex: 'index',
-    valueType: 'indexBorder',
-    width: 48,
-  },
-  {
     title: '标题',
-    dataIndex: 'title',
+    dataIndex: 'name',
     copyable: true,
     ellipsis: true,
     tip: '标题过长会自动收缩',
@@ -45,67 +34,43 @@ const columns: ProColumns<GithubIssueItem>[] = [
   {
     disable: true,
     title: '状态',
-    dataIndex: 'state',
+    dataIndex: 'status',
     filters: true,
     onFilter: true,
     ellipsis: true,
     valueType: 'select',
     valueEnum: {
-      all: { text: '超长'.repeat(50) },
-      open: {
-        text: '未解决',
-        status: 'Error',
-      },
-      closed: {
-        text: '已解决',
+      fail: {
+        text: '解析失败',
         status: 'Success',
         disabled: true,
       },
-      processing: {
-        text: '解决中',
+      done: {
+        text: '解析成功',
+        status: 'Success',
+        disabled: true,
+      },
+      pending: {
+        text: '解析中',
         status: 'Processing',
       },
     },
   },
   {
-    disable: true,
-    title: '标签',
-    dataIndex: 'labels',
-    search: false,
-    renderFormItem: (_, { defaultRender }) => {
-      return defaultRender(_);
-    },
-    render: (_, record) => (
-      <Space>
-        {record.labels.map(({ name, color }) => (
-          <Tag color={color} key={name}>
-            {name}
-          </Tag>
-        ))}
-      </Space>
-    ),
-  },
-  {
     title: '创建时间',
     key: 'showTime',
-    dataIndex: 'created_at',
+    dataIndex: 'createTime',
     valueType: 'date',
     sorter: true,
     hideInSearch: true,
   },
-  {
-    title: '创建时间',
-    dataIndex: 'created_at',
-    valueType: 'dateRange',
-    hideInTable: true,
-    search: {
-      transform: (value) => {
-        return {
-          startTime: value[0],
-          endTime: value[1],
-        };
-      },
-    },
+ {
+    title: '更新时间',
+    key: 'showTime',
+    dataIndex: 'updateTime',
+    valueType: 'date',
+    sorter: true,
+    hideInSearch: true,
   },
   {
     title: '操作',
@@ -125,7 +90,13 @@ const columns: ProColumns<GithubIssueItem>[] = [
       </a>,
       <TableDropdown
         key="actionGroup"
-        onSelect={() => action?.reload()}
+        onSelect={async() =>{ 
+          console.log(action);
+          
+            await deleteProject(record._id)
+            action?.reload()
+          }
+        }
         menus={[
           { key: 'copy', name: '复制' },
           { key: 'delete', name: '删除' },
@@ -137,16 +108,20 @@ const columns: ProColumns<GithubIssueItem>[] = [
 
 export default () => {
   const actionRef = useRef<ActionType>();
+  const [open, setOpen] = useState(false)
   return (
+    <>
+    
+    
     <ProTable<GithubIssueItem>
       columns={columns}
       actionRef={actionRef}
       cardBordered
       request={async (params = {}, sort, filter) => {
         console.log(sort, filter);
-        return request<{
+        return getProjects<{
           data: GithubIssueItem[];
-        }>('https://proapi.azurewebsites.net/github/issues', {
+        }>({
           params,
         });
       }}
@@ -182,13 +157,13 @@ export default () => {
         },
       }}
       pagination={{
-        pageSize: 5,
+        pageSize: 10,
         onChange: (page) => console.log(page),
       }}
       dateFormatter="string"
       headerTitle="高级表格"
       toolBarRender={() => [
-        <Button key="button" icon={<PlusOutlined />} type="primary">
+        <Button onClick={()=>setOpen(true)} key="button" icon={<PlusOutlined />} type="primary">
           新建
         </Button>,
         <Dropdown
@@ -216,5 +191,35 @@ export default () => {
         </Dropdown>,
       ]}
     />
+    <ModalForm
+        name="validate_other"
+        open={open}
+        initialValues={{
+          name: 'qixian',
+          updateTime: undefined,
+          status: 0,
+        }}
+        onValuesChange={(_, values) => {
+          console.log(values);
+        }}
+        onFinish={async (value) => { 
+           const body = {
+             ...value,
+             status: 1,
+             createTime: dayjs().valueOf()
+        }
+        const res = await createProject(body);
+        if(res.success){
+          message.success("创建成功")
+          actionRef.current.reload()
+          setOpen(false)
+        }
+        }
+      }
+      >
+          <ProFormText width="md" name="name" label="项目名称" />
+          <ProFormText width="md" name="resource" label="来源" />
+        </ModalForm>
+    </>
   );
 };

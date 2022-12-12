@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
+import mongoose, { Model, Types } from 'mongoose'
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import cheerio from 'cheerio'
 import axios from 'axios'
 import puppeteer from 'puppeteer'
+import { InjectModel } from "@nestjs/mongoose";
+import { Project, ProjectDocument } from "./project.schema";
+
 
 @Injectable()
 export class ProjectService {
+
+  constructor(@InjectModel(Project.name) private projectModel: Model<ProjectDocument>){}
   
   loginUrl = "//gitlab.tangees.com/users/sign_in"
   url = "https://gitlab.tangees.com/estate-backend/estate/-/wikis/apps.api.industryoverview"
@@ -21,13 +27,16 @@ export class ProjectService {
    }
   }
 
-  create(createProjectDto: CreateProjectDto) {
-    return 'This action adds a new project';
+  async create(createProjectDto: CreateProjectDto) {
+    console.log(createProjectDto);
+    const createProject = new this.projectModel(createProjectDto)
+    return await createProject.save();
   }
 
-  async findAll() {
-    const res =  await this.climbWik(); 
-    return `title`;
+  async findAll(params) {
+    console.log(params);
+    
+    return this.projectModel.find(params).exec()
   }
 
   findOne(id: number) {
@@ -38,7 +47,7 @@ export class ProjectService {
     return `This action updates a #${id} project`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} project`;
+  async remove(id: string) {
+    return this.projectModel.deleteOne({id})
   }
 }
